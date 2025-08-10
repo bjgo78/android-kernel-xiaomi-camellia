@@ -84,8 +84,8 @@ jobs:
           elif [[ -f out/arch/arm64/boot/Image ]]; then
             cp out/arch/arm64/boot/Image AnyKernel3/Image
           fi
-          if [[ -f ${{ env.OUT_DIR }}/arch/arm64/boot/dts/mediatek/camellia.dtb]]; then
-            cp ${{ env.OUT_DIR }}/arch/arm64/boot/dts/mediatek/camellia.dtb AnyKernel3/camellia.dtb
+          if [[ -f out/arch/arm64/boot/dts/mediatek/camellia.dtb ]]; then
+            cp out/arch/arm64/boot/dts/mediatek/camellia.dtb AnyKernel3/camellia.dtb
           fi
 
       - name: Upload Kernel Artifact
