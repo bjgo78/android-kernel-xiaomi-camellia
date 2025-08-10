@@ -1,95 +1,99 @@
-控制+空间: KBUILD_BUILD_HOST: "Instance"
+name: Build Kernel
 
-触发自动完成。:
+on:
   workflow_dispatch:
-使用:
-    - 突耳: 导航到下一个占位符。-名称：结帐回购通过
-拖拽，:
-选择或粘贴它们。:
-      - '*'用途：行动/付款台@v3附加工资
+  schedule:
+    - cron: '0 0 * * 6'
+  push:
+    branches:
+      - '**'
   pull_request:
-上传你的文件……:
-      - '*'
+    branches:
+      - '**'
 
-我们不支持这种文件类型。:
-再试一次:
-    runs-on: 提取深度：100
-有:
-      TOOLCHAIN_DIR: -name：安装依赖项{{ github.workspace }}/工具链
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    env:
+      CCACHE_COMPILERCHECK: "clang -dumpmachine; clang -dumpversion"
+      CCACHE_NOHASHDIR: "true"
+      CCACHE_MAXSIZE: "2G"
+      CCACHE_HARDLINK: "true"
       KERNEL_DEFCONFIG: "camellia_defconfig"
-GIF、JPEG、JPG、金属氧化物压敏电阻（MOV）、MP4、巴新、可缩放矢量图形（SVG）或WEBM: sudo apt-get update -y
-附加文档需要对此存储库的写权限。: sudo 恰当的-得到 安装-英语字母表的第25个字母 海湾合作委员会-aarch64-linux的-角马 海湾合作委员会-臂-linux的-gnueabi binutils 制作 python3 libssl-发展 建筑-极其重要的 公元前 野牛 屈伸解压缩文化艺术（ca）-证书xz-跑龙套 cpio设备-树-编译器饭桶-Linux从头开始（lfs）
-      KBUILD_BUILD_USER: "Konnlori"
-      KBUILD_BUILD_HOST: "Instance"
+      OUT_DIR: "out"
 
-再试一次:
-      - 有: 切换
-GIF、JPEG、JPG、金属氧化物压敏电阻（MOV）、MP4、巴新、可缩放矢量图形（SVG）或WEBM: 突耳
-我们不支持这种文件类型。:
-再试一次: 有
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: true
           fetch-depth: 100
 
-      - GIF、JPEG、JPG、金属氧化物压敏电阻（MOV）、MP4、巴新、可缩放矢量图形（SVG）或WEBM: 然后
-此文件为空。: |
-再试一次
-使用一个不空的文件。
+      - name: Set up ccache
+        uses: hendrikmuhs/ccache-action@v1.2
 
-再试一次
-另一份文件。
-出了问题，我们无法处理那个文件。
-再试一次。
-支持标记样式
-名称：建筑 核
--cron：'0**6'#每周六 0
-- '*' 苏多 恰当的-得到 更新 -英语字母表的第25个字母
-- '*'
-运行：社团关爱精神-22.04
-TOOLCHAIN_DIR: ${{ github.workspace }}/工具链
-KERNEL_DEFCONFIG: "camellia_defconfig"
-拱门：arm64
-副主任：arm64
-KBUILD_BUILD_USER: "Konnlori"
-KBUILD_BUILD_HOST: "Instance"
--名称：结帐回购
-用途：行动/付款台@v3
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            gcc make python3 libssl-dev build-essential bc bison flex unzip ca-certificates xz-utils mkbootimg cpio device-tree-compiler git git-lfs wget
 
-子模块：真正的
-提取深度：100
--名字：安装依赖项
-运行：|
-苏多 恰当的-得到 更新 -英语字母表的第25个字母
+      - name: Download and setup Linaro toolchain
+        run: |
+          LINUXARCHIVE="gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz"
+          wget https://releases.linaro.org/components/toolchain/binaries/7.5-2019.12/aarch64-linux-gnu/${LINUXARCHIVE}
+          tar -xf ${LINUXARCHIVE}
+          echo "${PWD}/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu/bin" >> $GITHUB_PATH
 
-苏多 恰当的-得到 安装-英语字母表的第25个字母 海湾合作委员会-aarch64-linux的-角马 海湾合作委员会-臂-linux的-gnueabi binutils 制作 python3 libssl-发展 建筑-极其重要的 公元前 野牛 屈伸解压缩文化艺术（ca）-证书xz-跑龙套 cpio设备-树-编译器饭桶-Linux从头开始（lfs）
-使用
-控制+换挡+M
-切换
-突耳
-按键移动焦点。或者，使用
-欧洲心脏病学会
-然后
-突耳
-移动到页面上的下一个交互元素。
-            CROSS_COMPILE_ARM32=臂-linux的-androideabi-
+      - name: Clean kernel build output
+        run: make O=${{ env.OUT_DIR }} mrproper
 
-使用
-控制+空间
-触发自动完成。
-abcD (一个 + b + c + D) (abcD (a + b + c + D) (abc)) 很棒的 的 jkl 餐厅 感谢 产品质量报告 司徒
-- 移动到页面上的下一个交互元素。: Clone 工具链
-运行：|
-mkdir -P $TOOLCHAIN_DIR
-如果[！-D使用]；然后
-饭桶 克隆 --深奥=1 https://github.com/kdrag0n/proton-clang 控制+空间
-其他的
-跳跃质子铛铛克隆，已经存在
-菲
-如果[！-使用触发自动完成。帮助面板导航；然后
-控制+换挡+饭桶 切换 --突耳=克隆 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 使用
-其他的
-跳过GCC64克隆，已经存在
+      - name: Get build time
+        id: get_time
+        run: echo "TIME=$(TZ=UTC-8 date +%m%d%H%M)" >> $GITHUB_OUTPUT
 
-菲
-按键移动焦点。或者，使用如果！-欧洲心脏病学会突耳归档；然后
-突耳:
-然后 突耳 --移动到页面上的下一个交互元素。=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 附加工资
-其他的
+      - name: Build Kernel
+        run: |
+          export PATH=${PWD}/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu/bin:$PATH
+          export CC=clang
+          export CLANG_TRIPLE=aarch64-linux-gnu-
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+          export ARCH=arm64
+          export SUBARCH=arm64
+
+          make O=${{ env.OUT_DIR }} KCFLAGS=-w ARCH=arm64 CC="ccache clang" ${{ env.KERNEL_DEFCONFIG }}
+          make O=${{ env.OUT_DIR }} KCFLAGS=-w ARCH=arm64 CC="ccache clang" -j$(nproc)
+
+      - name: Package kernel with AnyKernel3
+        run: |
+          rm -rf AnyKernel3
+          git clone --depth=1 -b master https://github.com/osm0sis/AnyKernel3 AnyKernel3
+          rm -rf AnyKernel3/.git AnyKernel3/.github AnyKernel3/LICENSE AnyKernel3/README.md
+
+          if [[ -f ${{ env.OUT_DIR }}/arch/arm64/boot/Image.gz-dtb ]]; then
+            cp ${{ env.OUT_DIR }}/arch/arm64/boot/Image.gz-dtb AnyKernel3/Image.gz-dtb
+          elif [[ -f ${{ env.OUT_DIR }}/arch/arm64/boot/Image-dtb ]]; then
+            cp ${{ env.OUT_DIR }}/arch/arm64/boot/Image-dtb AnyKernel3/Image-dtb
+          elif [[ -f ${{ env.OUT_DIR }}/arch/arm64/boot/Image.gz ]]; then
+            cp ${{ env.OUT_DIR }}/arch/arm64/boot/Image.gz AnyKernel3/Image.gz
+          elif [[ -f ${{ env.OUT_DIR }}/arch/arm64/boot/Image ]]; then
+            cp ${{ env.OUT_DIR }}/arch/arm64/boot/Image AnyKernel3/Image
+          else
+            echo "No kernel image found!"
+            exit 1
+          fi
+
+          if [[ -f ${{ env.OUT_DIR }}/arch/arm64/boot/dtbo.img ]]; then
+            cp ${{ env.OUT_DIR }}/arch/arm64/boot/dtbo.img AnyKernel3/dtbo.img
+          fi
+
+          cd AnyKernel3
+          zip -r ../kernel_package.zip .
+
+      - name: Upload kernel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel_package_${{ steps.get_time.outputs.TIME }}.zip
+          path: kernel_package.zip
