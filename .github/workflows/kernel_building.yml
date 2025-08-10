@@ -3,97 +3,93 @@ name: Build Kernel
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * 6'
+    - cron: '0 0 * * 6'   # 每周六0点运行
   push:
     branches:
-      - '**'
+      - '*'              # 匹配所有分支
   pull_request:
     branches:
-      - '**'
+      - '*'
 
 jobs:
   build:
     runs-on: ubuntu-22.04
-
     env:
-      CCACHE_COMPILERCHECK: "clang -dumpmachine; clang -dumpversion"
-      CCACHE_NOHASHDIR: "true"
-      CCACHE_MAXSIZE: "2G"
-      CCACHE_HARDLINK: "true"
+      TOOLCHAIN_DIR: ${{ github.workspace }}/toolchains
       KERNEL_DEFCONFIG: "camellia_defconfig"
-      OUT_DIR: "out"
+      ARCH: arm64
+      SUBARCH: arm64
+      KBUILD_BUILD_USER: "Konnlori"
+      KBUILD_BUILD_HOST: "Instance"
 
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v3
         with:
           submodules: true
           fetch-depth: 100
 
-      - name: Set up ccache
-        uses: hendrikmuhs/ccache-action@v1.2
-
       - name: Install dependencies
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y \
-            gcc make python3 libssl-dev build-essential bc bison flex unzip ca-certificates xz-utils mkbootimg cpio device-tree-compiler git git-lfs wget
+          sudo apt-get install -y gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi binutils make python3 libssl-dev build-essential bc bison flex unzip ca-certificates xz-utils cpio device-tree-compiler git git-lfs
 
-      - name: Download and setup Linaro toolchain
+      - name: Clone toolchains
         run: |
-          LINUXARCHIVE="gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz"
-          wget https://releases.linaro.org/components/toolchain/binaries/7.5-2019.12/aarch64-linux-gnu/${LINUXARCHIVE}
-          tar -xf ${LINUXARCHIVE}
-          echo "${PWD}/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu/bin" >> $GITHUB_PATH
+          mkdir -p $TOOLCHAIN_DIR
+          if [ ! -d "$TOOLCHAIN_DIR/proton-clang/bin" ]; then
+            git clone --depth=1 https://github.com/kdrag0n/proton-clang "$TOOLCHAIN_DIR/proton-clang"
+          else
+            echo "[!] Skipping Proton Clang clone, already exists."
+          fi
+          if [ ! -d "$TOOLCHAIN_DIR/gcc/bin" ]; then
+            git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 "$TOOLCHAIN_DIR/gcc"
+          else
+            echo "[!] Skipping GCC64 clone, already exists."
+          fi
+          if [ ! -d "$TOOLCHAIN_DIR/gcc32/bin" ]; then
+            git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 "$TOOLCHAIN_DIR/gcc32"
+          else
+            echo "[!] Skipping GCC32 clone, already exists."
+          fi
 
-      - name: Clean kernel build output
-        run: make O=${{ env.OUT_DIR }} mrproper
-
-      - name: Get build time
-        id: get_time
-        run: echo "TIME=$(TZ=UTC-8 date +%m%d%H%M)" >> $GITHUB_OUTPUT
+      - name: Setup PATH
+        run: |
+          echo "${{ env.TOOLCHAIN_DIR }}/proton-clang/bin" >> $GITHUB_PATH
+          echo "${{ env.TOOLCHAIN_DIR }}/gcc/bin" >> $GITHUB_PATH
+          echo "${{ env.TOOLCHAIN_DIR }}/gcc32/bin" >> $GITHUB_PATH
 
       - name: Build Kernel
         run: |
-          export PATH=${PWD}/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu/bin:$PATH
-          export CC=clang
-          export CLANG_TRIPLE=aarch64-linux-gnu-
-          export CROSS_COMPILE=aarch64-linux-gnu-
-          export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
-          export ARCH=arm64
-          export SUBARCH=arm64
+          make clean
+          make mrproper
+          make O=out ARCH=${{ env.ARCH }} ${{ env.KERNEL_DEFCONFIG }}
+          make -j$(nproc) O=out ARCH=${{ env.ARCH }} \
+            CC=clang \
+            LD=ld.lld \
+            CLANG_TRIPLE=aarch64-linux-gnu- \
+            CROSS_COMPILE=aarch64-linux-android- \
+            CROSS_COMPILE_ARM32=arm-linux-androideabi-
 
-          make O=${{ env.OUT_DIR }} KCFLAGS=-w ARCH=arm64 CC="ccache clang" ${{ env.KERNEL_DEFCONFIG }}
-          make O=${{ env.OUT_DIR }} KCFLAGS=-w ARCH=arm64 CC="ccache clang" -j$(nproc)
-
-      - name: Package kernel with AnyKernel3
+      - name: Package kernel
         run: |
-          rm -rf AnyKernel3
-          git clone --depth=1 -b master https://github.com/osm0sis/AnyKernel3 AnyKernel3
+          git clone --depth=1 https://github.com/osm0sis/AnyKernel3 -b master AnyKernel3
           rm -rf AnyKernel3/.git AnyKernel3/.github AnyKernel3/LICENSE AnyKernel3/README.md
-
-          if [[ -f ${{ env.OUT_DIR }}/arch/arm64/boot/Image.gz-dtb ]]; then
-            cp ${{ env.OUT_DIR }}/arch/arm64/boot/Image.gz-dtb AnyKernel3/Image.gz-dtb
-          elif [[ -f ${{ env.OUT_DIR }}/arch/arm64/boot/Image-dtb ]]; then
-            cp ${{ env.OUT_DIR }}/arch/arm64/boot/Image-dtb AnyKernel3/Image-dtb
-          elif [[ -f ${{ env.OUT_DIR }}/arch/arm64/boot/Image.gz ]]; then
-            cp ${{ env.OUT_DIR }}/arch/arm64/boot/Image.gz AnyKernel3/Image.gz
-          elif [[ -f ${{ env.OUT_DIR }}/arch/arm64/boot/Image ]]; then
-            cp ${{ env.OUT_DIR }}/arch/arm64/boot/Image AnyKernel3/Image
-          else
-            echo "No kernel image found!"
-            exit 1
+          if [[ -f out/arch/arm64/boot/Image.gz-dtb ]]; then
+            cp out/arch/arm64/boot/Image.gz-dtb AnyKernel3/Image.gz-dtb
+          elif [[ -f out/arch/arm64/boot/Image-dtb ]]; then
+            cp out/arch/arm64/boot/Image-dtb AnyKernel3/Image-dtb
+          elif [[ -f out/arch/arm64/boot/Image.gz ]]; then
+            cp out/arch/arm64/boot/Image.gz AnyKernel3/Image.gz
+          elif [[ -f out/arch/arm64/boot/Image ]]; then
+            cp out/arch/arm64/boot/Image AnyKernel3/Image
           fi
-
           if [[ -f ${{ env.OUT_DIR }}/arch/arm64/boot/dts/mediatek/camellia.dts ]]; then
             cp ${{ env.OUT_DIR }}/arch/arm64/boot/dts/mediatek/camellia.dts AnyKernel3/camellia.dts
           fi
 
-          cd AnyKernel3
-          zip -r ../kernel_package.zip .
-
-      - name: Upload kernel artifact
+      - name: Upload Kernel Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: kernel_package_${{ steps.get_time.outputs.TIME }}.zip
-          path: kernel_package.zip
+          name: final-kernel
+          path: AnyKernel3/*
