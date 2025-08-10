@@ -85,8 +85,8 @@ jobs:
             exit 1
           fi
 
-          if [[ -f ${{ env.OUT_DIR }}/arch/arm64/boot/dtbo.img ]]; then
-            cp ${{ env.OUT_DIR }}/arch/arm64/boot/dtbo.img AnyKernel3/dtbo.img
+          if [[ -f ${{ env.OUT_DIR }}/arch/arm64/boot/dts/mediatek/camellia.dts ]]; then
+            cp ${{ env.OUT_DIR }}/arch/arm64/boot/dts/mediatek/camellia.dts AnyKernel3/camellia.dts
           fi
 
           cd AnyKernel3
